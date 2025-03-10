@@ -22,13 +22,14 @@ import { AlertStyles } from "./components/alert";
           },
           
           '::-webkit-scrollbar': {
-          width: '0.3125rem',
-          height: '0.3125rem',
+          width: '0rem',
+          height: '0rem',
           backgroundColor: '#353935	',
+          borderRadius: '7.5rem',
         },
 
         '::-webkit-scrollbar-thumb': {
-          background: '#3c3c4399',
+          background: 'red',
           borderRadius: '7.5rem',
         },
         }),
