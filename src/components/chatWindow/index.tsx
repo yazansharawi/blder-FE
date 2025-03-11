@@ -1,4 +1,4 @@
-import { Box, VStack, Flex } from "@chakra-ui/react";
+import { VStack, Flex } from "@chakra-ui/react";
 import ChatBubble from "../chatBubble";
 import { useEffect, useRef } from "react";
 
@@ -10,6 +10,11 @@ interface ChatWindowProps {
 
 const ChatWindow = ({ messages, isLoading = false, loadingText = "Thinking..." }: ChatWindowProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [messages, isLoading]);
+
 
   return (
     <Flex p={5} bg={"#F7F7F7"} w={"100%"} borderRadius={"2.5rem"} overflowY={"scroll"} height={"80vh"}  >
@@ -32,8 +37,8 @@ const ChatWindow = ({ messages, isLoading = false, loadingText = "Thinking..." }
             loadingText={loadingText}
           />
         )}
+          <div ref={messagesEndRef}/>
       </VStack>
-      <Box ref={messagesEndRef} />
     </Flex>
   );
 };

@@ -29,6 +29,7 @@ const ChatBubble = ({
       w="100%"
       justifyContent={messageType === "user" ? "flex-end" : "flex-start"}
       position={"relative"}
+      pb={"1rem"}
     >
       <Flex>
         {/* {messageType === "bot" && (
