@@ -9,7 +9,7 @@ import { Flex, VStack, useToast } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Array<{id: string, content: string, type: "bot" | "user"}>>([]);
+  const [messages, setMessages] = useState<Array<Message>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +40,10 @@ export default function ChatPage() {
     }
   ];
 
+  // useEffect(() => {
+  //   console.log(messages)
+  // }, [messages])
+
   // Initialize WebSocket connection
   const initializeWebSocket = () => {
     // Don't recreate if already connected
@@ -53,22 +57,18 @@ export default function ChatPage() {
     // Connection opened
     webSocket.onopen = () => {
       setIsConnected(true);
-      toast({
-        title: "Connected to server",
-        status: "success",
-      });
     };
     
     // Listen for messages based on the server's structure
     webSocket.onmessage = (event) => {
       try {
         const response = JSON.parse(event.data);
-        console.log("Received:", response);
+        // console.log(response)
         
         // Handle message based on message_type
         switch (response.message_type) {
           case "start":
-            // Start of a new message
+            console.log("woo")
             const newMessageId = Date.now().toString();
             currentBotMessageId.current = newMessageId;
             setMessages(prevMessages => [...prevMessages, {
@@ -79,10 +79,11 @@ export default function ChatPage() {
             break;
             
           case "stream":
+            const messageIdToStream = currentBotMessageId.current;
             // Continuation of message (streaming)
-            if (currentBotMessageId.current) {
-              setMessages(prevMessages => prevMessages.map(msg => 
-                msg.id === currentBotMessageId.current 
+            if (messageIdToStream) {
+              setMessages(prevMessages => prevMessages.map(msg =>
+                msg.id === messageIdToStream
                   ? { ...msg, content: msg.content + (response.message || "") } 
                   : msg
               ));
@@ -90,7 +91,14 @@ export default function ChatPage() {
             break;
             
           case "end":
-            // End of streaming message
+            const messageIdToUpdate = currentBotMessageId.current;
+            if (messageIdToUpdate && response.meta_data) {
+              setMessages(prevMessages => prevMessages.map(msg => 
+                msg.id === messageIdToUpdate
+                  ? { ...msg, metaData: response.meta_data } 
+                  : msg // Don't modify other messages
+                  ));
+            }
             setIsLoading(false);
             currentBotMessageId.current = null;
             break;
@@ -123,27 +131,16 @@ export default function ChatPage() {
     // Connection closed
     webSocket.onclose = () => {
       setIsConnected(false);
-      toast({
-        title: "Disconnected from server",
-        description: "The connection to the server was lost.",
-        status: "error",
-      });
     };
     
     // Error handling
     webSocket.onerror = (error) => {
       console.error("WebSocket error:", error);
-      toast({
-        title: "Connection error",
-        description: "Failed to connect to the server. Please try again later.",
-        status: "error",
-      });
     };
 
     socketRef.current = webSocket;
   };
 
-  // Clean up WebSocket on component unmount
   useEffect(() => {
     return () => {
       if (socketRef.current) {
@@ -152,15 +149,25 @@ export default function ChatPage() {
     };
   }, []);
 
+
+  useEffect(() => {
+    console.log("Component mounted, initializing WebSocket");
+    initializeWebSocket();
+    
+    return () => {
+      console.log("Component unmounting, closing WebSocket");
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+    };
+  }, []);
+
   const handleSendMessage = (message: string) => {
     // Initialize connection if not already connected
     if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
       initializeWebSocket();
-      
-      // Add a small delay to ensure the connection is established before sending
-      setTimeout(() => {
-        sendMessageToServer(message);
-      }, 500);
+      sendMessageToServer(message);
     } else {
       sendMessageToServer(message);
     }
@@ -210,7 +217,7 @@ export default function ChatPage() {
       direction={"column"}
     >
       <NavBar />
-      <Flex gap={"1rem"}>
+      <Flex gap={"1rem"} transition={"all 0.3s ease"}>
         <SideBar
           sections={dummySections}
         />
