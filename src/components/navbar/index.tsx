@@ -44,13 +44,10 @@ export default function NavBar() {
       boxShadow={scrolled ? "sm" : "none"}
       transition="all 0.3s ease"
       my={2.5}
-      px={{ base: 0, md: 6, lg: 12 }}
     >
       <Flex
         color="text"
-        minH="60px"
-        py={{ base: 2 }}
-        px={{ base: 4, md: 6, lg: 8 }}
+        minH="3.75rem"
         align="center"
         justify="space-between"
       >
