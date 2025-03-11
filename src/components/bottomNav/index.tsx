@@ -37,7 +37,6 @@ const NavItem = ({ icon, label, isSelected, onClick }: NavItemProps) => {
 
 export default function BottomNavbar() {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const bgColor = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
 
   const navItems = [
@@ -49,15 +48,9 @@ export default function BottomNavbar() {
 
   return (
     <Box
-      position="fixed"
-      bottom={0}
-      left={0}
-      right={0}
-      borderTop="1px solid"
-      borderColor={borderColor}
-      bg={bgColor}
+      bg={"white"}
       boxShadow="0 -2px 10px rgba(0, 0, 0, 0.05)"
-      zIndex={100}
+      w={"100%"}
     >
       <Flex width="100%" justify="space-between">
         {navItems.map((item, index) => (

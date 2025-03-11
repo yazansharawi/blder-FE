@@ -1,59 +1,54 @@
-import {
-    Theme,
-    extendTheme,
-    ThemeConfig,
-  } from "@chakra-ui/react";
+import { Theme, extendTheme, ThemeConfig } from "@chakra-ui/react";
 import { AlertStyles } from "./components/alert";
-  
-  
-  const config: ThemeConfig = {
-    initialColorMode: 'dark',
-    useSystemColorMode: false, 
-  };
-  
-  export const theme: Theme = extendTheme(
-    {
-      config,
-      styles: {
-        global: (props: any) => ({
-          "html, body": {
-            bg: "white",
-            color:"black",
-          },
-          
-          '::-webkit-scrollbar': {
-          width: '0rem',
-          height: '0rem',
-          backgroundColor: '#353935	',
-          borderRadius: '7.5rem',
-        },
+import '@fontsource-variable/geist';
 
-        '::-webkit-scrollbar-thumb': {
-          background: 'red',
-          borderRadius: '7.5rem',
+const config: ThemeConfig = {
+  initialColorMode: "dark",
+  useSystemColorMode: false,
+};
+
+export const theme: Theme = extendTheme(
+  {
+    config,
+    styles: {
+      global: (props: any) => ({
+        "html, body": {
+          bg: "white",
+          color: "black",
+          fontFamily: "'Geist Variable', sans-serif"
         },
-        }),
-      },
-      breakpoints: {
-        sm: '28rem',
-        md: '48rem',
-        lg: '82rem',
-        xl: '92rem',
-        '2xl': '96rem',
-      },
-      semanticTokens: {
-        colors: {
-          mainRed: "#d60505",
-          text: "black",
-          textSecondary: "#3c3c4399"
+        "::-webkit-scrollbar": {
+          width: "0rem",
+          height: "0rem",
+          backgroundColor: "#353935",
+          borderRadius: "7.5rem",
         },
-      },
-      fonts: {
-    heading: '"Suisse Intl", sans-serif',
-    body: '"Suisse Intl", sans-serif',
-      },
-      components: {
-        Alert: AlertStyles,
+        "::-webkit-scrollbar-thumb": {
+          background: "red",
+          borderRadius: "7.5rem",
+        },
+      }),
+    },
+    breakpoints: {
+      sm: "28rem",
+      md: "48rem",
+      lg: "82rem",
+      xl: "92rem",
+      "2xl": "96rem",
+    },
+    semanticTokens: {
+      colors: {
+        mainRed: "#d60505",
+        text: "black",
+        textSecondary: "#3c3c4399",
       },
     },
-  ) as Theme;
+    fonts: {
+      heading: "'Geist Variable', sans-serif",
+      body: "'Geist Variable', sans-serif",
+    },
+    components: {
+      Alert: AlertStyles,
+    },
+  }
+) as Theme;

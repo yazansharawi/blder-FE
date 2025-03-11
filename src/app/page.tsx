@@ -1,36 +1,21 @@
 "use client"
 
+import BottomNavbar from "@/components/bottomNav";
 import ChatInput from "@/components/chatInput";
 import ChatWindow from "@/components/chatWindow";
 import NavBar from "@/components/navbar";
 import SideBar from "@/components/sidebar";
-import { Flex, Text, VStack } from "@chakra-ui/react";
+import { Flex, VStack, useToast } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 
 export default function ChatPage() {
-  // Dummy chat data
-  const dummyMessages = [
-    {
-      id: "1",
-      content: "Hello! How can I assist you today?",
-      type: "bot"
-    },
-    {
-      id: "2",
-      content: "I need help with my project. Can you explain React hooks?",
-      type: "user"
-    },
-    {
-      id: "3",
-      content: "Of course! React Hooks are functions that let you use state and other React features without writing a class component. The most common hooks are:\n\n- useState: For managing state in functional components\n- useEffect: For handling side effects\n- useContext: For consuming context\n- useRef: For accessing DOM elements directly\n\nWould you like me to explain any specific hook in more detail?",
-      type: "bot"
-    },
-    {
-      id: "4",
-      content: "Thank you! Can you give me an example of useState?",
-      type: "user"
-    },
-  ];
+  const [messages, setMessages] = useState<Array<{id: string, content: string, type: "bot" | "user"}>>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+  const toast = useToast();
+  const currentBotMessageId = useRef<string | null>(null);
 
   const dummySections = [
     {
@@ -54,50 +39,158 @@ export default function ChatPage() {
       sessionNames: ["Risk Assessment", "Diversification Analysis", "Performance Metrics", "Rebalancing Calculator"]
     }
   ];
-  
 
-  const [messages, setMessages] = useState(dummyMessages);
-  const [isLoading, setIsLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  // Initialize WebSocket connection
+  const initializeWebSocket = () => {
+    // Don't recreate if already connected
+    if (socketRef.current && (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+    
+    // Create WebSocket connection
+    const webSocket = new WebSocket("ws://127.0.0.1:8000/chatbot/stock-market-analysis");
+    
+    // Connection opened
+    webSocket.onopen = () => {
+      setIsConnected(true);
+      toast({
+        title: "Connected to server",
+        status: "success",
+      });
+    };
+    
+    // Listen for messages based on the server's structure
+    webSocket.onmessage = (event) => {
+      try {
+        const response = JSON.parse(event.data);
+        console.log("Received:", response);
+        
+        // Handle message based on message_type
+        switch (response.message_type) {
+          case "start":
+            // Start of a new message
+            const newMessageId = Date.now().toString();
+            currentBotMessageId.current = newMessageId;
+            setMessages(prevMessages => [...prevMessages, {
+              id: newMessageId,
+              content: "",
+              type: "bot"
+            }]);
+            break;
+            
+          case "stream":
+            // Continuation of message (streaming)
+            if (currentBotMessageId.current) {
+              setMessages(prevMessages => prevMessages.map(msg => 
+                msg.id === currentBotMessageId.current 
+                  ? { ...msg, content: msg.content + (response.message || "") } 
+                  : msg
+              ));
+            }
+            break;
+            
+          case "end":
+            // End of streaming message
+            setIsLoading(false);
+            currentBotMessageId.current = null;
+            break;
+            
+          case "error":
+            // Error from server
+            toast({
+              title: "Server error",
+              description: response.message || "An error occurred on the server.",
+              status: "error",
+            });
+            setIsLoading(false);
+            break;
+            
+          default:
+            // Handle any other message types
+            console.log("Unknown message type:", response.message_type);
+        }
+      } catch (error) {
+        console.error("Error parsing message:", error);
+        toast({
+          title: "Message error",
+          description: "Received invalid message format from server.",
+          status: "error",
+        });
+        setIsLoading(false);
+      }
+    };
+    
+    // Connection closed
+    webSocket.onclose = () => {
+      setIsConnected(false);
+      toast({
+        title: "Disconnected from server",
+        description: "The connection to the server was lost.",
+        status: "error",
+      });
+    };
+    
+    // Error handling
+    webSocket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      toast({
+        title: "Connection error",
+        description: "Failed to connect to the server. Please try again later.",
+        status: "error",
+      });
+    };
 
-  // Simulate a loading state and new message after component mounts
+    socketRef.current = webSocket;
+  };
+
+  // Clean up WebSocket on component unmount
   useEffect(() => {
-    setIsLoading(true);
-    
-    const timer = setTimeout(() => {
-      setMessages([...messages, {
-        id: "6",
-        content: "Is there anything else you'd like to know about React?",
-        type: "bot"
-      }]);
-      setIsLoading(false);
-    }, 2000);
-    
-    return () => clearTimeout(timer);
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+    };
   }, []);
 
   const handleSendMessage = (message: string) => {
-    // Add user message
+    // Initialize connection if not already connected
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      initializeWebSocket();
+      
+      // Add a small delay to ensure the connection is established before sending
+      setTimeout(() => {
+        sendMessageToServer(message);
+      }, 500);
+    } else {
+      sendMessageToServer(message);
+    }
+  };
+
+  const sendMessageToServer = (message: string) => {
+    // Add user message to chat
     const newUserMessage = {
       id: Date.now().toString(),
       content: message,
       type: "user" as const
     };
     
-    setMessages([...messages, newUserMessage]);
+    setMessages(prevMessages => [...prevMessages, newUserMessage]);
     setIsLoading(true);
     
-    // Simulate bot response after a delay
-    setTimeout(() => {
-      const botResponse = {
-        id: (Date.now() + 1).toString(),
-        content: `You said: "${message}". How can I help you further?`,
-        type: "bot" as const
-      };
-      
-      setMessages(prevMessages => [...prevMessages, botResponse]);
+    // Check connection again before sending
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({
+        message: message,
+        timestamp: new Date().toISOString()
+      }));
+    } else {
+      toast({
+        title: "Connection error",
+        description: "Cannot send message. Not connected to server.",
+        status: "warning",
+      });
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -118,27 +211,26 @@ export default function ChatPage() {
     >
       <NavBar />
       <Flex gap={"1rem"}>
-      <SideBar
-        sections={dummySections}
-      />
-      <VStack 
-        width="100%" 
-        spacing={4}
-      >
-        <ChatWindow 
-          messages={messages} 
-          isLoading={isLoading} 
-          loadingText="The AI is typing..." 
+        <SideBar
+          sections={dummySections}
         />
-        
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          onKeyDown={handleKeyDown}
-          inputRef={inputRef}
-          isDisabled={isLoading}
-          isLoading={isLoading}
-        />
-      </VStack>
+        <VStack 
+          width="100%" 
+        >
+          <ChatWindow 
+            messages={messages} 
+            isLoading={isLoading} 
+            loadingText="The AI is analyzing..." 
+          />
+          
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            onKeyDown={handleKeyDown}
+            inputRef={inputRef}
+            isDisabled={isLoading}
+            isLoading={isLoading}
+          />
+        </VStack>
       </Flex>
     </Flex>
   );

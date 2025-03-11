@@ -21,6 +21,7 @@ const SideBar = ({ sections }: SideBarProps) => {
       p={4}
       overflowY="auto"
       borderRadius={"1rem"}
+      display={["none", "none", "flex", "flex"]}
     >
 
 
